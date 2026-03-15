@@ -1,5 +1,6 @@
-numpy
+streamlit
 pandas
 plotly
-streamlit
+numpy
 altair==4.2.2
+scipy
