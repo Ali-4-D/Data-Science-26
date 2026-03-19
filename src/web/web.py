@@ -316,7 +316,7 @@ elif page == "📊 Interactive Dashboard":
                 else:
                     st.info("Not enough data to construct a Violin Plot for this specific year.")
                 
-            st.success("**Answer:** Heavy news coverage creates a strong 'spillover effect'. Graph 3a visualizes where data clusters the most: showing that high news in month t-1 strongly correlates with high search interest in month t. Graph 3b displays the full probability density of public panic, proving that a 'High News' prior month dramatically shifts the entire distribution of public anxiety upward.")
+            st.success("**Answer:** Media coverage shows a moderate spillover effect on search interest. Graph 3a suggests a weak positive relationship between prior news volume and subsequent search, though the pattern is dispersed. Graph 3b shows that higher prior media coverage shifts search interest upward, but with considerable variability.")
 
         with st.container(border=True):
             st.subheader("Q4: How long does elevated Google search interest persist following major peaks in media coverage?")
@@ -325,7 +325,7 @@ elif page == "📊 Interactive Dashboard":
                 fig4a = go.Figure()
                 fig4a.add_trace(go.Scatter(
                     x=dff1['Date'], y=dff1['news_count'],
-                    name="News Count",
+                    name="News Count: Inflation",
                     fill='tozeroy',
                     fillcolor=COLORS["news_fill"],
                     line=dict(color=COLORS["news_line"], width=2)
@@ -339,7 +339,7 @@ elif page == "📊 Interactive Dashboard":
                 fig4a.update_layout(
                     title="4a: Decay of Public Interest Timeline",
                     yaxis_title="News Count (articles/month)",
-                    yaxis2=dict(title="Google Trends Index", overlaying='y', side='right'),
+                    yaxis2=dict(title="Google Trends Index", overlaying='y', side='right',range=[0, 100]),
                     height=430,
                     xaxis=dict(
                         title="Date",
@@ -433,48 +433,178 @@ elif page == "📊 Interactive Dashboard":
         
         with st.container(border=True):
             st.subheader("Q7: How do changes in energy prices influence search interest for 'inflation' and 'energy costs'?")
+
             col6_1, col6_2 = st.columns(2)
+
+            # Mapping for English UI
+            search_map = {
+                "Inflation": "Inflation",
+                "Energy Costs": "Energiekosten"
+            }
+
             with col6_1:
+                # Reserve the same vertical space as the dropdown on the right
+                st.markdown("<div style='height: 76px;'></div>", unsafe_allow_html=True)
+
                 fig7a = go.Figure()
-                fig7a.add_trace(go.Scatter(x=dff3['Date'], y=dff3['energy_price_index'], name="Energy Price Index", line=dict(color='#d62728', width=3)))
-                fig7a.add_trace(go.Scatter(x=dff3['Date'], y=dff3['Inflation'], name="Search: Inflation", yaxis='y2', line=dict(color='#1f77b4', dash='dot')))
-                fig7a.add_trace(go.Scatter(x=dff3['Date'], y=dff3['Energiekosten'], name="Search: Energy Costs", yaxis='y2', line=dict(color='#ff7f0e', dash='dot')))
-                fig7a.update_layout(title="7a: Energy Index vs Search Trends", yaxis_title="Price Index", yaxis2=dict(title="Google Trends", overlaying='y', side='right'))
+                fig7a.add_trace(go.Scatter(
+                    x=dff3['Date'],
+                    y=dff3['energy_price_index'],
+                    name="Energy Price Index",
+                    line=dict(color='#d62728', width=3)
+                ))
+                fig7a.add_trace(go.Scatter(
+                    x=dff3['Date'],
+                    y=dff3['Inflation'],
+                    name="Search: Inflation",
+                    yaxis='y2',
+                    line=dict(color='#1f77b4', dash='dot')
+                ))
+                fig7a.add_trace(go.Scatter(
+                    x=dff3['Date'],
+                    y=dff3['Energiekosten'],
+                    name="Search: Energy Costs",
+                    yaxis='y2',
+                    line=dict(color='#ff7f0e', dash='dot')
+                ))
+
+                fig7a.update_layout(
+                    title="7a: Energy Index vs Search Trends",
+                    yaxis_title="Price Index",
+                    yaxis2=dict(
+                        title="Google Trends",
+                        overlaying='y',
+                        side='right'
+                    ),
+                    height=450
+                )
+
                 st.plotly_chart(fig7a, use_container_width=True, theme="streamlit")
-            
+
             with col6_2:
-                # NEU: Farb-Parameter "color='inflation_rate'" wurde durch "color_discrete_sequence=['#d62728']" ersetzt
-                fig7b = px.scatter(dff3, x="energy_price_index", y="Energiekosten", 
-                                   color_discrete_sequence=['#d62728'],
-                                   marginal_x="histogram", marginal_y="histogram",
-                                   title="7b: Marginal Distribution (Energy vs Searches)",
-                                   labels={"energy_price_index": "Energy Price Index", "Energiekosten": "Trends: Energy Costs"})
-                # Leichtes Outline hinzufügen für bessere Lesbarkeit
-                fig7b.update_traces(marker=dict(line=dict(width=1, color='DarkSlateGrey')), opacity=0.8)
+                selected_label = st.selectbox(
+                    "Choose search term:",
+                    list(search_map.keys()),
+                    key="q7b_search"
+                )
+
+                selected_column = search_map[selected_label]
+
+                fig7b = px.scatter(
+                    dff3,
+                    x="energy_price_index",
+                    y=selected_column,
+                    color_discrete_sequence=['#d62728'],
+                    marginal_x="histogram",
+                    marginal_y="histogram",
+                    title=f"7b: Energy vs {selected_label}",
+                    labels={
+                        "energy_price_index": "Energy Price Index",
+                        selected_column: f"Trends: {selected_label}"
+                    }
+                )
+
+                fig7b.update_traces(
+                    marker=dict(
+                        line=dict(width=1, color='DarkSlateGrey')
+                    ),
+                    opacity=0.8
+                )
+
+                fig7b.update_layout(height=450)
+
                 st.plotly_chart(fig7b, use_container_width=True, theme="streamlit")
-                
-            st.success("**Answer:** Visually, the sudden surge in the energy price index in late 2022 coincided with a massive spike in search trends. However, as we will statistically prove in Q9, the overall mathematical correlation over the full 3-year timeline is actually weak. Why? Because after the initial shock in 2022, search panic dropped off rapidly, while energy prices stayed independently elevated. The public panic was driven by the *initial momentum and media shock*, not the ongoing long-term price level.")
-
+            st.success(
+                "**Answer:** The plots show that sharp increases in energy prices—especially in late 2022—coincide with strong spikes in search interest for both “inflation” and “energy costs.” However, this relationship is short-lived. After the initial surge, search interest declines significantly even though energy prices remain relatively high. The scatter plots further confirm that there is no strong long-term correlation, indicating that public attention is driven more by sudden price shocks than by sustained energy price levels."
+            )
         with st.container(border=True):
-            st.subheader("Q8: How strongly do fluctuations in food prices explain variations in search interest for 'cost of living'?")
-            col8_1, col8_2 = st.columns(2)
-            with col8_1:
-                fig8a = px.density_contour(dff3, x="food_price_index", y="Lebenshaltungskosten",
-                                  title="8a: Density Contour (Food Prices vs 'Cost of Living')",
-                                  labels={"food_price_index": "Food Price Index", "Lebenshaltungskosten": "Trends: Cost of Living"})
-                fig8a.update_traces(contours_coloring="fill", contours_showlabels=True)
-                fig8a.add_trace(go.Scatter(x=dff3["food_price_index"], y=dff3["Lebenshaltungskosten"], mode="markers", marker=dict(color="white", size=5, line=dict(color="black", width=1)), showlegend=False))
-                st.plotly_chart(fig8a, use_container_width=True, theme="streamlit")
-                
-            with col8_2:
-                fig8b = go.Figure()
-                fig8b.add_trace(go.Scatter(x=dff3['Date'], y=dff3['food_price_index'], name="Food Price Index", fill='tozeroy', marker_color='rgba(44, 160, 44, 0.2)', line=dict(color='#2ca02c')))
-                fig8b.add_trace(go.Scatter(x=dff3['Date'], y=dff3['Lebenshaltungskosten'], name="Trends: Cost of Living", yaxis='y2', line=dict(color='#1f77b4', width=3)))
-                fig8b.update_layout(title="8b: The Divergence over Time", yaxis_title="Food Index", yaxis2=dict(title="Google Trends", overlaying='y', side='right'))
-                st.plotly_chart(fig8b, use_container_width=True, theme="streamlit")
-                
-            st.success("**Answer:** The relationship is counterintuitive. Graph 8a uses a Density Contour Plot to show that the heaviest concentration of 'Cost of living' searches actually happened when food prices were lower. Graph 8b reveals a massive divergence: Food prices (green area) rose continuously throughout 2022 and 2023. However, search interest dropped as prices climbed higher. This proves a powerful psychological habituation effect: the public adapted to grocery inflation, reducing their panic even as groceries became more expensive.")
+            st.subheader("Q8: How strongly do fluctuations in food prices explain variations in search interest?")
 
+            col8_1, col8_2 = st.columns(2)
+
+            with col8_1:
+                search_map_q8 = {
+                    "Cost of Living": "Lebenshaltungskosten",
+                    "Inflation": "Inflation"
+                }
+
+                selected_label_q8 = st.selectbox(
+                    "Choose search term:",
+                    list(search_map_q8.keys()),
+                    key="q8a_search"
+                )
+
+                selected_column_q8 = search_map_q8[selected_label_q8]
+
+                fig8a = px.density_contour(
+                    dff3,
+                    x="food_price_index",
+                    y=selected_column_q8,
+                    title=f"8a: Food Prices vs {selected_label_q8}",
+                    labels={
+                        "food_price_index": "Food Price Index",
+                        selected_column_q8: f"Trends: {selected_label_q8}"
+                    }
+                )
+
+                fig8a.update_traces(
+                    contours_coloring="fill",
+                    contours_showlabels=True
+                )
+
+                fig8a.add_trace(
+                    go.Scatter(
+                        x=dff3["food_price_index"],
+                        y=dff3[selected_column_q8],
+                        mode="markers",
+                        marker=dict(
+                            color="white",
+                            size=5,
+                            line=dict(color="black", width=1)
+                        ),
+                        showlegend=False
+                    )
+                )
+
+                fig8a.update_layout(height=450)
+
+                st.plotly_chart(fig8a, use_container_width=True, theme="streamlit")
+
+            with col8_2:
+                st.markdown("<div style='height: 76px;'></div>", unsafe_allow_html=True)
+
+                fig8b = go.Figure()
+                fig8b.add_trace(go.Scatter(
+                    x=dff3['Date'],
+                    y=dff3['food_price_index'],
+                    name="Food Price Index",
+                    fill='tozeroy',
+                    marker_color='rgba(44, 160, 44, 0.2)',
+                    line=dict(color='#2ca02c')
+                ))
+                fig8b.add_trace(go.Scatter(
+                    x=dff3['Date'],
+                    y=dff3['Lebenshaltungskosten'],
+                    name="Trends: Cost of Living",
+                    yaxis='y2',
+                    line=dict(color='#1f77b4', width=3)
+                ))
+
+                fig8b.update_layout(
+                    title="8b: The Divergence over Time",
+                    yaxis_title="Food Price Index",
+                    yaxis2=dict(
+                        title="Google Trends",
+                        overlaying='y',
+                        side='right'
+                    ),
+                    height=450
+                )
+
+                st.plotly_chart(fig8b, use_container_width=True, theme="streamlit")
+            st.success(
+                "**Answer:** The plots indicate a weak and inconsistent relationship between food prices and search interest for “cost of living.” While food prices show a steady upward trend, search interest fluctuates without a clear pattern. The density plot shows no strong clustering along a trend line, and the time series highlights a divergence between rising prices and unstable search behavior. Overall, food price changes alone do not strongly explain variations in search interest."
+            )
     # --- TAB 4: MACRO INTERACTIONS ---
     with tab4:
         y4 = st.selectbox("📅 Filter Timeline for Tab 4:", available_years, key="y4")
@@ -555,20 +685,20 @@ elif page == "🎯 Project Summary":
         st.markdown("""
         Based on our comprehensive analysis of the 9 research questions and the exact statistical calculations shown in our Dashboard, we can draw the following core conclusions regarding the German inflation crisis (2022-2024):
         
-        ### 1. Media is the Ultimate Amplifier (Q1 - Q4)
-        Public concern does not simply arise on its own; it is heavily directed by the media. We found a highly significant positive correlation between the volume of news articles and public search interest. When the media heavily reports on inflation, the public immediately researches related topics. Furthermore, heavy news coverage creates a strong "spillover effect" into the following month.
+        ### 1. Media as a key Amplifier (Q1 - Q4)
+        Public concern does not simply arise on its own; it is heavily directed by the media. We found a highly significant positive correlation between the volume of news articles and public search interest. When the media heavily reports on inflation, the public immediately researches related topics. Some evidence also points to a short-term spillover effect into subsequent periods.
         
-        ### 2. The Psychological 5% Threshold (Q5 - Q6)
+        ### 2. Evidence of a Threshold Effect (Q5 - Q6)
         Public attention closely tracks the official inflation rate. Our data proves a clear **threshold effect**: months where inflation exceeded 5% saw dramatically higher, panic-level search volumes (e.g., searches for energy costs nearly tripled). Below this psychological threshold, macroeconomic topics largely fade from the public's daily consciousness.
         
         ### 3. The Habituation Effect: Prices decoupling from Panic (Q7 - Q8)
         Our most surprising finding is that actual living costs eventually decouple from public panic. While the initial explosion of energy prices in 2022 caused an immediate shock, the long-term correlation to the media cycle is statistically insignificant. Even more striking: Food prices rose continuously throughout 2022 and 2023, yet public searches for "cost of living" dropped off, resulting in a significant negative correlation. This proves a **psychological habituation effect**: people adapt to slow, continuous price pain (groceries), but only panic during sudden, unpredictable media shocks.
         
-        ### 4. The Ultimate Synthesis (Q9)
-        The 2022-2024 crisis in Germany was primarily an "event-driven media crisis" rather than a continuous reflection of structural data. The labor market remained completely insulated—unemployment stayed flat and showed a significant negative correlation with media panic, proving it never contributed to the public's anxiety.
+        ### 4. The Synthesis (Q9)
+        Overall, the findings suggest that public attention is more closely aligned with media dynamics and salient economic shocks than with steady underlying trends. Some indicators, such as unemployment, show limited alignment with media coverage and search behavior.
         """)
         
-        st.info("💡 **Takeaway:** Economic crises are as much psychological as they are mathematical. Managing public panic requires managing both energy volatility and media narratives.")
+        st.info("💡 **Takeaway:** Economic crises appear to be shaped not only by underlying economic conditions but also by media dynamics and public perception.")
 
 # --- FOOTER ---
 st.markdown("---")
